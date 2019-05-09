@@ -1,0 +1,110 @@
+
+src/main.o:     file format elf32-littleriscv
+
+
+Disassembly of section .text._ZL20__gthread_key_deletei:
+
+00000000 <_ZL20__gthread_key_deletei>:
+   0:	1101                	addi	sp,sp,-32
+   2:	ce22                	sw	s0,28(sp)
+   4:	1000                	addi	s0,sp,32
+   6:	fea42623          	sw	a0,-20(s0)
+   a:	4781                	li	a5,0
+   c:	853e                	mv	a0,a5
+   e:	4472                	lw	s0,28(sp)
+  10:	6105                	addi	sp,sp,32
+  12:	8082                	ret
+
+Disassembly of section .text.main:
+
+00000000 <main>:
+   0:	1101                	addi	sp,sp,-32
+   2:	ce22                	sw	s0,28(sp)
+   4:	1000                	addi	s0,sp,32
+   6:	4785                	li	a5,1
+   8:	fef42623          	sw	a5,-20(s0)
+   c:	4789                	li	a5,2
+   e:	fef42423          	sw	a5,-24(s0)
+  12:	fec42703          	lw	a4,-20(s0)
+  16:	fe842783          	lw	a5,-24(s0)
+  1a:	97ba                	add	a5,a5,a4
+  1c:	fef42223          	sw	a5,-28(s0)
+  20:	4781                	li	a5,0
+  22:	853e                	mv	a0,a5
+  24:	4472                	lw	s0,28(sp)
+  26:	6105                	addi	sp,sp,32
+  28:	8082                	ret
+
+Disassembly of section .text._Z41__static_initialization_and_destruction_0ii:
+
+00000000 <_Z41__static_initialization_and_destruction_0ii>:
+   0:	1101                	addi	sp,sp,-32
+   2:	ce06                	sw	ra,28(sp)
+   4:	cc22                	sw	s0,24(sp)
+   6:	1000                	addi	s0,sp,32
+   8:	fea42623          	sw	a0,-20(s0)
+   c:	feb42423          	sw	a1,-24(s0)
+  10:	fec42703          	lw	a4,-20(s0)
+  14:	4785                	li	a5,1
+  16:	02f71063          	bne	a4,a5,36 <.L6>
+  1a:	fe842703          	lw	a4,-24(s0)
+  1e:	67c1                	lui	a5,0x10
+  20:	17fd                	addi	a5,a5,-1
+  22:	00f71a63          	bne	a4,a5,36 <.L6>
+  26:	000007b7          	lui	a5,0x0
+  2a:	00078513          	mv	a0,a5
+  2e:	00000097          	auipc	ra,0x0
+  32:	000080e7          	jalr	ra # 2e <_Z41__static_initialization_and_destruction_0ii+0x2e>
+
+00000036 <.L6>:
+  36:	fec42783          	lw	a5,-20(s0)
+  3a:	ef99                	bnez	a5,58 <.L8>
+  3c:	fe842703          	lw	a4,-24(s0)
+  40:	67c1                	lui	a5,0x10
+  42:	17fd                	addi	a5,a5,-1
+  44:	00f71a63          	bne	a4,a5,58 <.L8>
+  48:	000007b7          	lui	a5,0x0
+  4c:	00078513          	mv	a0,a5
+  50:	00000097          	auipc	ra,0x0
+  54:	000080e7          	jalr	ra # 50 <.L6+0x1a>
+
+00000058 <.L8>:
+  58:	0001                	nop
+  5a:	40f2                	lw	ra,28(sp)
+  5c:	4462                	lw	s0,24(sp)
+  5e:	6105                	addi	sp,sp,32
+  60:	8082                	ret
+
+Disassembly of section .text._GLOBAL__sub_I_main:
+
+00000000 <_GLOBAL__sub_I_main>:
+   0:	1141                	addi	sp,sp,-16
+   2:	c606                	sw	ra,12(sp)
+   4:	c422                	sw	s0,8(sp)
+   6:	0800                	addi	s0,sp,16
+   8:	67c1                	lui	a5,0x10
+   a:	fff78593          	addi	a1,a5,-1 # ffff <.LASF1598+0x38af>
+   e:	4505                	li	a0,1
+  10:	00000097          	auipc	ra,0x0
+  14:	000080e7          	jalr	ra # 10 <_GLOBAL__sub_I_main+0x10>
+  18:	40b2                	lw	ra,12(sp)
+  1a:	4422                	lw	s0,8(sp)
+  1c:	0141                	addi	sp,sp,16
+  1e:	8082                	ret
+
+Disassembly of section .text._GLOBAL__sub_D_main:
+
+00000000 <_GLOBAL__sub_D_main>:
+   0:	1141                	addi	sp,sp,-16
+   2:	c606                	sw	ra,12(sp)
+   4:	c422                	sw	s0,8(sp)
+   6:	0800                	addi	s0,sp,16
+   8:	67c1                	lui	a5,0x10
+   a:	fff78593          	addi	a1,a5,-1 # ffff <.LASF1598+0x38af>
+   e:	4501                	li	a0,0
+  10:	00000097          	auipc	ra,0x0
+  14:	000080e7          	jalr	ra # 10 <_GLOBAL__sub_D_main+0x10>
+  18:	40b2                	lw	ra,12(sp)
+  1a:	4422                	lw	s0,8(sp)
+  1c:	0141                	addi	sp,sp,16
+  1e:	8082                	ret
