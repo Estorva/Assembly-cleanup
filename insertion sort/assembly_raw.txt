@@ -1,0 +1,53 @@
+<main>:
+   100fc:	0006c7b7          	lui	a5,0x6c
+   10100:	78078793          	addi	a5,a5,1920 # 6c780 <_exit+0x8>
+   10104:	0007a803          	lw	a6,0(a5)
+   10108:	0047a603          	lw	a2,4(a5)
+   1010c:	0087a683          	lw	a3,8(a5)
+   10110:	00c7a703          	lw	a4,12(a5)
+   10114:	0107a783          	lw	a5,16(a5)
+   10118:	fd010113          	addi	sp,sp,-48
+   1011c:	00c10513          	addi	a0,sp,12
+   10120:	00500593          	li	a1,5
+   10124:	02112623          	sw	ra,44(sp)
+   10128:	01012623          	sw	a6,12(sp)
+   1012c:	00c12823          	sw	a2,16(sp)
+   10130:	00d12a23          	sw	a3,20(sp)
+   10134:	00e12c23          	sw	a4,24(sp)
+   10138:	00f12e23          	sw	a5,28(sp)
+   1013c:	01d000ef          	jal	ra,10958 <_Z13insertionSortPii>
+   10140:	02c12083          	lw	ra,44(sp)
+   10144:	00000513          	li	a0,0
+   10148:	03010113          	addi	sp,sp,48
+   1014c:	00008067          	ret
+<_Z13insertionSortPii>:
+   10958:	00259893          	slli	a7,a1,0x2
+   1095c:	00100793          	li	a5,1
+   10960:	00450813          	addi	a6,a0,4
+   10964:	011508b3          	add	a7,a0,a7
+   10968:	04b7d063          	bge	a5,a1,109a8 <_Z13insertionSortPii+0x50>
+   1096c:	00082683          	lw	a3,0(a6)
+   10970:	ffc82703          	lw	a4,-4(a6)
+   10974:	00080613          	mv	a2,a6
+   10978:	02e6d263          	bge	a3,a4,1099c <_Z13insertionSortPii+0x44>
+   1097c:	ffc80793          	addi	a5,a6,-4
+   10980:	0100006f          	j	10990 <_Z13insertionSortPii+0x38>
+   10984:	ffc78793          	addi	a5,a5,-4
+   10988:	0007a703          	lw	a4,0(a5)
+   1098c:	00e6d863          	bge	a3,a4,1099c <_Z13insertionSortPii+0x44>
+   10990:	00e7a223          	sw	a4,4(a5)
+   10994:	00078613          	mv	a2,a5
+   10998:	fef516e3          	bne	a0,a5,10984 <_Z13insertionSortPii+0x2c>
+   1099c:	00d62023          	sw	a3,0(a2)
+   109a0:	00480813          	addi	a6,a6,4
+   109a4:	fd0894e3          	bne	a7,a6,1096c <_Z13insertionSortPii+0x14>
+   109a8:	00008067          	ret
+Data memory:
+  6c780:	000c                	0xc
+  6c782:	0000                	unimp
+  6c784:	0000000b          	0xb
+  6c788:	000d                	c.nop	3
+  6c78a:	0000                	unimp
+  6c78c:	0005                	c.nop	1
+  6c78e:	0000                	unimp
+  6c790:	0006                	c.slli	zero,0x1

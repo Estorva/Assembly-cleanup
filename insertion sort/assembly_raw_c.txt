@@ -1,0 +1,53 @@
+<main>:
+   100fc:	0006c7b7          	lui	a5,0x6c
+   10100:	75078793          	addi	a5,a5,1872 # 6c750 <_exit+0xc>
+   10104:	0007a803          	lw	a6,0(a5)
+   10108:	43d0                	lw	a2,4(a5)
+   1010a:	4794                	lw	a3,8(a5)
+   1010c:	47d8                	lw	a4,12(a5)
+   1010e:	4b9c                	lw	a5,16(a5)
+   10110:	7179                	addi	sp,sp,-48
+   10112:	0068                	addi	a0,sp,12
+   10114:	4595                	li	a1,5
+   10116:	d606                	sw	ra,44(sp)
+   10118:	c642                	sw	a6,12(sp)
+   1011a:	c832                	sw	a2,16(sp)
+   1011c:	ca36                	sw	a3,20(sp)
+   1011e:	cc3a                	sw	a4,24(sp)
+   10120:	ce3e                	sw	a5,28(sp)
+   10122:	017000ef          	jal	ra,10938 <_Z13insertionSortPii>
+   10126:	50b2                	lw	ra,44(sp) # lwsp
+   10128:	4501                	li	a0,0
+   1012a:	6145                	addi	sp,sp,48
+   1012c:	8082                	ret
+<_Z13insertionSortPii>:
+   10938:	00259893          	slli	a7,a1,0x2
+   1093c:	4785                	li	a5,1
+   1093e:	00450813          	addi	a6,a0,4
+   10942:	98aa                	add	a7,a7,a0
+   10944:	02b7d863          	bge	a5,a1,10974 <_Z13insertionSortPii+0x3c>
+   10948:	00082683          	lw	a3,0(a6)
+   1094c:	ffc82703          	lw	a4,-4(a6)
+   10950:	8642                	mv	a2,a6
+   10952:	00e6dd63          	bge	a3,a4,1096c <_Z13insertionSortPii+0x34>
+   10956:	ffc80793          	addi	a5,a6,-4
+   1095a:	a029                	j	10964 <_Z13insertionSortPii+0x2c>
+   1095c:	17f1                	addi	a5,a5,-4
+   1095e:	4398                	lw	a4,0(a5)
+   10960:	00e6d663          	bge	a3,a4,1096c <_Z13insertionSortPii+0x34>
+   10964:	c3d8                	sw	a4,4(a5)
+   10966:	863e                	mv	a2,a5
+   10968:	fef51ae3          	bne	a0,a5,1095c <_Z13insertionSortPii+0x24>
+   1096c:	c214                	sw	a3,0(a2)
+   1096e:	0811                	addi	a6,a6,4
+   10970:	fd089ce3          	bne	a7,a6,10948 <_Z13insertionSortPii+0x10>
+   10974:	8082                	ret
+Data memory:
+   6c750:	000c                	0xc
+   6c752:	0000                	unimp
+   6c754:	0000000b          	0xb
+   6c758:	000d                	c.nop	3
+   6c75a:	0000                	unimp
+   6c75c:	0005                	c.nop	1
+   6c75e:	0000                	unimp
+   6c760:	00000006          	0x6
