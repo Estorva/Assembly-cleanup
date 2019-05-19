@@ -75,6 +75,8 @@ def link_register(args):
             except ValueError:
                 raise NotImplementedError("Unknown register name: " + args[i]) from None
             args[i] = str(int(args[i][1]) + 10)
+        elif args[i][0:2] == '0x':
+            pass
         else:
             try:
                 int(args[i][1])
@@ -85,179 +87,227 @@ def link_register(args):
                 pass # dirty trick to get the program to work
     return args
 
-def expand(args):
+def expand(il):
     '''
-        Given args (a list of strings, first of which is instruction name),
-        expand the instruction into corresponding sub-instructions
-        and returns a list of sub-instructions, which are list of strings
+        Given a list of tuples (a string and a dict), on encountering a tuple
+        whose 'nm' calls for expansion, modify this instruction, and insert
+        necessary instructions after this one.
+        Returns a new list of tuples.
         li rd imm -> (lui...) ori...
 
-        If -c flag is on, translate all possible commands to their compressed
-        form. (RV32I -> RV32C)
     '''
     ls = []                             # (l)ist of (s)ubinstructions
 
-    # Translate all pseudo instructions
-    if args[0] == "li":
-        # load upper 20 bits of imm w/ lui and lower 12 bits w/ ori
-        imm = int(args[2])
-        u = imm >> 12
-        l = imm & 0xFFF
-        if (u != 0):
-            ls.append(['lui', args[1], str(u)])
-            ls.append(['ori', args[1], args[1], str(l)])
+    for _, i in il:
+        nm = i['nm']
+        args = i['args']
+
+        new1 = i
+        new2 = i
+
+        if nm == "li":
+            # load upper 20 bits of imm w/ lui and lower 12 bits w/ ori
+            imm = int(args[1])
+            u = imm >> 12
+            l = imm & 0xFFF
+            if (u != 0):
+                new1['nm'] = 'lui'
+                new1['args'] = [args[0], str(u)]
+                new2['nm'] = 'ori'
+                new2['args'] = [args[0], args[0], str(l)]
+                ls.append((_, new1))
+                ls.append(("", new2))
+            else:
+                new1['nm'] = 'addi'
+                new1['args'] = [args[0], '0', str(u)]
+                ls.append((_, new1))
+
+        elif nm == "ret":
+            if len(i['hex']) == 4:
+                # compressed
+                new1['nm'] = 'c.jr'
+                new1['args'] = ['1']
+            else:
+                new1['nm'] = 'jalr'
+                new1['args'] = ['0', '1', '0']
+            ls.append((_, new1))
+
+        elif nm  == "mv":
+            new1['nm'] = 'addi'
+            new1['args'] = [args[0], args[1], '0']
+            ls.append((_, new1))
+
+        elif nm  == "j":
+            new1['nm'] = 'jal'
+            new1['args'] = ['0', args[0]]
+            ls.append((_, new1))
+
+        elif nm  == "jalr" and len(args) == 2:
+            new1['nm'] = 'jalr'
+            new1['args'] = ['1', args[0], '0']
+            ls.append((_, new1))
+
+        elif nm  == "nop":
+            new1['nm'] = 'addi'
+            new1['args'] = ['0', '0', '0']
+            ls.append((_, new1))
+
         else:
-            ls.append(['addi', args[1], '0', str(l)])
-    elif args[0] == "ret":
-        ls.append(['jalr', '0', '1', '0'])
-    elif args[0] == "mv":
-        ls.append(['addi', args[1], args[2], '0'])
-    elif args[0] == "j":
-        ls.append(['jal', '0', args[1]])
-    elif args[0] == "jalr" and len(args) == 2:
-        ls.append(['jalr', '1', args[1], '0'])
-    elif args[0] == "nop":
-        ls.append(['addi', '0', '0', '0'])
-    else:
-        # Nothing to expand: copy args to ls
-        ls.append(args)
+            # Nothing to expand: copy args to ls
+            ls.append((_, i))
 
     return ls
 
 
+
 def main():
-    r = False               # flag, true when (r)eading lines in main block
-    v = False               # flag, true when reading local (v)ariables
-    va = 0                  # (v)ariable (a)ddress
     il = []                 # (i)nstruction (l)ist
+    bnl = []                # (b)lock (n)ame (l)ist
     block_name = "main"     # wont parse until <main>, assuming all subprocesses
                             # comes after <main>
-    pc = 0
-    pf = 0                  # (p)c of (f)irst instruction
-    psd = []                # Processed section
+    data = []
+    read_data = False
+
+    # Run thru the file, record the blocks and their first instruction address
+    # Record the offsets of jump instructions
+    # Change the address of all instructions according to their instruction length
 
     with open(sys.argv[1], 'r') as f:
         ss = f.readlines()
         # (s)entence(s) = (f)ile.readlines()
+
+        # build our database
         for s in ss:
             # for (s)entence in ss
+
+            if s[-3:] == ">:\n":
+                # new block
+                name = s.lstrip('<').strip('>:\n')
+                bnl.append((name, []))
+
+        bd = dict(bnl) # dictionary
+        pc = 0xa00
+
+        for s in ss:
             if s[0] == '#':
                 continue
                 # skip comment lines
 
-            if s == '\n':
-                # empty line
-                if r:
-                    r = False
-                    il.append('\n')
+            if s == "Data memory:\n":
+                read_data = True
                 continue
 
-            if s[-4:-1] == "...":
-                # local variable block ends in "..."
-                v = False
-                continue
+            if s[0] == '<':
+                block_name = s.lstrip('<').strip('>:\n')
+            elif not read_data:
+                # instruction
+                ws = s.strip('\n').split() # (w)ord(s)
 
-            ws = s.strip('\n').split()
-            # (w)ord(s) = s.split()
-            if len(ws) > 1 and ws[1] == "<" + block_name + ">:":
-                r = True
-                pf = int(ws[0], 16)
-                print("\nIn block " + block_name + ":")
-                il.append(block_name + ":\n")
-                psd.append("<" + block_name + ">:\n")
-                continue
+                if len(ws) == 5:
+                    # a jump instruction (j-, b-)
+                    jdb = ws[4].lstrip('<').split('+')[0].strip('>') # (j)ump (d)estination (b)lock
+                    if '+' in ws[4]:
+                        offset = ws[4].strip('>').split('+')[-1] # a hex
+                    else:
+                        offset = "0x0"
+                else:
+                    jdb = ""
+                    offset = "0x0"
 
-            if len(ws) > 1 and ws[-1] == ".rodata:":
-                # local variables
-                v = True
-                print("\nData memory:")
-                il.append("Data memory:\n")
-                psd.append("Data memory:\n")
-                continue
-
-            if r:
-                # read lines in main block
-                # parse four kinds of instruction:
-                # 1. addi sp,sp,-32
-                # 2. sw   s0,28(sp)
-                # 3. li   a5,1
-                # 3. jalr ra
-                # 4. ret
-                print("Parsing " + s.strip('\n'))
-                psd.append(s)
-
-                i = [ws[2]]                 # (i)nstruction
-                if (len(ws) > 3):
-                    # len(ws) = 3 when instr = nop or ret
-                    args = ws[3].split(',')     # (arg)ument(s), split at ','
-
-                    if len(args) == 2 and args[-1][-1] == ')':
-                        # second case
-                        # sw rs2,offsef(rs1) -> sw rs2 rs1 offset
-                        args_ = args.pop(-1)    # pop() returns the removed entry
-                        args_ = args_.split('(')
-                        args_[1] = args_[1].strip(')')
-                        args.append(args_[1])
-                        args.append(args_[0])
-
-                    if ws[-1][-1] == '>' and ws[-3] != '#':
-                        # Instructions w/ jumps, shown as "instruction" <symbol> eg
-                        # 10978: 02e6d263 bge a3,a4,1099c <_Z13insertionSortPii+0x44>
-                        # Change block_name to the string wrapped inside
-                        # 2nd to last arg is pc -> we know too little to replace
-                        # it w/ correct number
-                        block_name = ws[-1].lstrip('<').strip('+').strip('>')
-                        #args[-1] = str(int(args[-1], 16) - pf)
-
-                    # Replace register names of args w/ numbers
-                    args = translate_hex(args)
-                    args = link_register(args)
+                # determine args
+                if len(ws) > 3:
+                    args = ws[3].split(',')
                 else:
                     args = []
 
-                # Expand pseudo instructions, must now instruction name & args
-                i = i + args                # join two lists
-                i = expand(i)               # i = list of list of strings
-                for i_ in i:
-                    il.append(str(hex(pc)) + ' ' + ' '.join(i_) + '\n') # merge strings into a string
+                i = {
+                    'ad':   ws[0].strip(':'),
+                    'hex':  ws[1],
+                    'nm':   ws[2],
+                    'args': args,
+                    'jdb':  jdb,
+                    'jdi':  "",
+                    'os':   int(offset, 16)
+                }
+                bd[block_name].append((ws[0].strip(':'), i))
+                # In bd, a key is mapped to a dict, which in turn
+                # maps an address to an instruction (instr are identified
+                # by their raw address)
+            else:
+                # print data memory entries
+                ws = s.strip('\n').split()
+                data.append(hex(pc) + ' ' + ws[1] + '\n')
+                pc += len(ws[1]) // 2
 
-                pc += 4
+        pc = 0
 
-            if v:
-                # Lines in this block look like this:
-                # 6c782:	0000                	unimp
-                # The instruction is meaningless
-                print("Parsing " + s.strip('\n'))
-                psd.append(s)
+        # replace destinations of jump instructions and
+        for _, il in bd.items():
+            for _, i in il:
+                if i['jdb'] != "":
+                    # This instruction has a jump destination,
+                    # replace the destination w/
+                    # the raw address of the destination instruction
+                    # jd: destination block -> raw address of dest. instr.
+                    start = int(bd[i['jdb']][0][0], 16)
+                    offset = i['os']
+                    i['jdi'] = hex(start + offset)
 
-                if len(ws) > 2:
-                    if ws[1] == "0000":
-                        il.append(str(hex(va)) + ' 0\n')
-                    else:
-                        il.append(str(hex(va)) + ' ' + ws[1].lstrip('0') + '\n')
+        # normalize expression of offsets
+        for _, il in bd.items():
+            for _, i in il:
+                if i['args'] != [] and i['args'][-1][-1] == ')':
+                    args_ = i['args'].pop(-1)    # pop() returns the removed entry
+                    args_ = args_.split('(')
+                    args_[1] = args_[1].strip(')')
+                    i['args'].append(args_[1])
+                    i['args'].append(args_[0])
 
-                    if len(ws[1]) == 4:
-                        va += 2
-                    else:
-                        va += 4
+        # expand register name
+        for _, il in bd.items():
+            for _, i in il:
+                i['args'] = link_register(i['args'])
 
-        # for s in ss
+        # expand pseudo instructions
+        for _, il in bd.items():
+            il = expand(il)
+
+        # rearrange address and add .c prefix
+        for _, il in bd.items():
+            for _, i in il:
+                i['ad'] = hex(pc)
+                pc += len(i['hex']) // 2
+                # 32bit instruction makes pc + 4, 16bit + 2
+
+                if len(i['hex']) == 4 and i['nm'][0:2] != "c.":
+                    i['nm'] = "c." + i['nm']
+
+        # resolute jump destination
+        for _, il in bd.items():
+            for _, i in il:
+                if i['jdb'] != "":
+                    for addr, instrdict in bd[i['jdb']]:
+                        if addr == i['jdi'][2:]:
+                            # absolute:
+                            # i['args'][-1] = instrdict['ad']
+                            # relative:
+                            i['args'][-1] = hex(int(instrdict['ad'], 16) - int(i['ad'], 16))
+                            i['hex'] = '#'*len(i['hex']) # invalidate this hex
+
 
         o = open(sys.argv[2], 'w+')             # (o)utput
-        for i in il:
-            o.write(i)
+        o.write('// Instructions:\n')
+        for _, il in bd.items():
+            for _, i in il:
+                o.write(i['ad'].ljust(5) + ' ' + i['hex'].ljust(9) + ' ' + i['nm'] + ' ' + ' '.join(i['args']) + '\n')
+        o.write('// Data:\n')
+        for d in data:
+            o.write(d)
 
         o.close()
-        o = open("processed.txt", 'w+')
-        for p in psd:
-            o.write(p)
 
 
 if __name__ == '__main__':
-    assert len(sys.argv) == 3 or len(sys.argv) == 4, "Usage: assembly.py <raw assembly> <output> [block]"
-    if len(sys.argv) == 4:
-        block_name = sys.argv[3]
-    else:
-        block_name = "main"
+    assert len(sys.argv) == 3, "Usage: assembly.py <raw assembly> <output>"
 
     main()
