@@ -102,8 +102,9 @@ def expand(il):
         nm = i['nm']
         args = i['args']
 
-        new1 = i
-        new2 = i
+        # = creates a reference, not a copy, BAD PYTHON
+        new1 = i.copy()
+        new2 = i.copy()
 
         if nm == "li":
             # load upper 20 bits of imm w/ lui and lower 12 bits w/ ori
@@ -113,13 +114,15 @@ def expand(il):
             if (u != 0):
                 new1['nm'] = 'lui'
                 new1['args'] = [args[0], str(u)]
+                new1['hex'] = '########'
                 new2['nm'] = 'ori'
                 new2['args'] = [args[0], args[0], str(l)]
+                new2['hex'] = '########'
                 ls.append((_, new1))
                 ls.append(("", new2))
             else:
                 new1['nm'] = 'addi'
-                new1['args'] = [args[0], '0', str(u)]
+                new1['args'] = [args[0], '0', str(l)]
                 ls.append((_, new1))
 
         elif nm == "ret":
@@ -132,25 +135,54 @@ def expand(il):
                 new1['args'] = ['0', '1', '0']
             ls.append((_, new1))
 
-        elif nm  == "mv":
+        elif nm == "mv":
             new1['nm'] = 'addi'
             new1['args'] = [args[0], args[1], '0']
             ls.append((_, new1))
 
-        elif nm  == "j":
-            new1['nm'] = 'jal'
-            new1['args'] = ['0', args[0]]
+        elif nm == "j":
+            if len(i['hex']) == 4:
+                # c.j offset = jal x0 offset
+                # but c.jal offset = jal x1 offset
+                new1['nm'] = 'c.j'
+                new1['args'] = [args[0]]
+            else:
+                # j offset = jal x0 offset
+                new1['nm'] = 'jal'
+                new1['args'] = ['0', args[0]]
             ls.append((_, new1))
 
-        elif nm  == "jalr" and len(args) == 2:
+        elif nm == "jalr" and len(args) == 2:
             new1['nm'] = 'jalr'
             new1['args'] = ['1', args[0], '0']
             ls.append((_, new1))
 
-        elif nm  == "nop":
+        elif nm == "bnez":
+            new1['nm'] = 'bne'
+            new1['args'] = [args[0], '0', args[1]]
+            ls.append((_, new1))
+
+        elif nm == "beqz":
+            new1['nm'] = 'beq'
+            new1['args'] = [args[0], '0', args[1]]
+            ls.append((_, new1))
+
+        elif nm == "nop":
             new1['nm'] = 'addi'
             new1['args'] = ['0', '0', '0']
             ls.append((_, new1))
+
+        elif nm == "main.ret":
+            # new1: nop = addi 0 0 0
+            # new2: j -4 = jal 0 -4
+            new1['nm'] = 'addi'
+            new1['args'] = ['0', '0', '0']
+            new1['hex'] = '########'
+            new2['nm'] = 'jal'
+            new2['args'] = ['0', '-4']
+            new2['hex'] = '########'
+            ls.append((_, new1))
+            ls.append(("", new2))
 
         else:
             # Nothing to expand: copy args to ls
@@ -220,6 +252,11 @@ def main():
                 else:
                     args = []
 
+                # specially handle ret of main
+                # the end of a main must be a loop of nop
+                if block_name == 'main' and len(ws) > 2 and ws[2] == 'ret':
+                    ws[2] = 'main.ret'
+
                 i = {
                     'ad':   ws[0].strip(':'),
                     'hex':  ws[1],
@@ -270,7 +307,7 @@ def main():
 
         # expand pseudo instructions
         for _, il in bd.items():
-            il = expand(il)
+            bd[_] = expand(il)
 
         # rearrange address and add .c prefix
         for _, il in bd.items():

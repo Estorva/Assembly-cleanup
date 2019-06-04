@@ -110,7 +110,7 @@ for instr in line:
             i[2]=str(bin(int(i[2]))).lstrip('0b').zfill(5)
             if int(i[3], 0)<0 :
                 i[3]=str(int(math.pow(2,12)+int(i[3], 0)))
-            i[3]=str(bin(int(i[3], 0))).lstrip('0b').zfill(12)
+            i[3]=str(bin(int(i[3], 0) // 2)).lstrip('0b').zfill(12) # imm of B and J type discards LSB
             opcode='1100011'
             funct3=B_f3[k]
             imm=i[3]
@@ -123,8 +123,8 @@ for instr in line:
     if i[0]=='jal':
         i[1]=str(bin(int(i[1]))).lstrip('0b').zfill(5)
         if int(i[2], 0)<0:
-            i[2]=math.pow(2,20)+int(i[2])
-        i[2]=str(bin(int(i[2], 0))).lstrip('0b').zfill(20)
+            i[2]=str(int(math.pow(2,20)+int(i[2], 0)))
+        i[2]=str(bin(int(i[2], 0) // 2)).lstrip('0b').zfill(20)
         opcode='1101111'
         rd=i[1]
         imm=i[2]
@@ -137,8 +137,8 @@ for instr in line:
         i[1]=str(bin(int(i[1]))).lstrip('0b').zfill(5)
         i[2]=str(bin(int(i[2]))).lstrip('0b').zfill(5)
         if int(i[3], 0)<0:
-            i[3]=math.pow(2,12)+int(i[3])
-        i[3]=str(bin(int(i[3]))).lstrip('0b').zfill(12)
+            i[3]=str(int(math.pow(2,12)+int(i[3])))
+        i[3]=str(bin(int(i[3]) // 2)).lstrip('0b').zfill(12)
         opcode='1100111'
         rd=i[1]
         rs1=i[2]
@@ -160,33 +160,54 @@ for instr in line:
 
     if i[0][0:2] == 'c.' and i[-1][0] != '#':
         instr_o = bin(int(i[-1], 16)).lstrip('0b').zfill(16).ljust(32)
+        print(instr_o)
 
 
     if i[0][2:] == 'j':
-        imm = bin(int(i[1])).lstrip('0b').zfill(12)
+        if int(i[1], 0) < 0:
+            i[1] = str(int(math.pow(2, 12) + int(i[1], 0)))
+        imm = bin(int(i[1], 0)).lstrip('0b').zfill(12)
         instr_o = ''.join(
             ['101', imm[0], imm[7], imm[2:4], imm[1], imm[5], imm[4], imm[8:11], imm[6], '01']
         ).ljust(32)
+        print '_'.join(
+            ['101', imm[0], imm[7], imm[2:4], imm[1], imm[5], imm[4], imm[8:11], imm[6], '01']
+        )
 
     if i[0][2:] == 'beqz':
+        if int(i[2], 0) < 0:
+            i[2] = str(int(math.pow(2, 9) + int(i[2], 0)))
         rs1 = bin(int(i[1])-8).lstrip('0b').zfill(3)
-        imm = bin(int(i[2])).lstrip('0b').zfill(9)
+        imm = bin(int(i[2], 0)).lstrip('0b').zfill(9)
         instr_o = ''.join(
             ['110', imm[-9], imm[-5:-3], rs1, imm[-8:-6], imm[-3:-1], imm[-6], '01']
         ).ljust(32)
+        print '_'.join(
+            ['110', imm[-9], imm[-5:-3], rs1, imm[-8:-6], imm[-3:-1], imm[-6], '01']
+        )
 
     if i[0][2:] == 'bnez':
+        if int(i[2], 0) < 0:
+            i[2] = str(int(math.pow(2, 9) + int(i[2], 0)))
         rs1 = bin(int(i[1])-8).lstrip('0b').zfill(3)
-        imm = bin(int(i[2])).lstrip('0b').zfill(9)
+        imm = bin(int(i[2], 0)).lstrip('0b').zfill(9)
         instr_o = ''.join(
             ['111', imm[-9], imm[-5:-3], rs1, imm[-8:-6], imm[-3:-1], imm[-6], '01']
         ).ljust(32)
+        print '_'.join(
+            ['111', imm[-9], imm[-5:-3], rs1, imm[-8:-6], imm[-3:-1], imm[-6], '01']
+        )
 
     if i[0][2:] == 'jal':
-        imm = bin(int(i[1])).lstrip('0b').zfill(12)
+        if int(i[1], 0) < 0:
+            i[1] = str(int(math.pow(2, 12) + int(i[1], 0)))
+        imm = bin(int(i[1], 0)).lstrip('0b').zfill(12)
         instr_o = ''.join(
             ['001', imm[0], imm[7], imm[2:4], imm[1], imm[5], imm[4], imm[8:11], imm[6], '01']
         ).ljust(32)
+        print '_'.join(
+            ['001', imm[0], imm[7], imm[2:4], imm[1], imm[5], imm[4], imm[8:11], imm[6], '01']
+        )
 
     '''
     if i[0][2:] == 'lw' and int(i[2]) == 2:
